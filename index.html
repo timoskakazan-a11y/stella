@@ -1,1 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Стелла — AI помощник</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      width: 420px;
+      max-width: 95%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .chat-window {
+      flex-grow: 1;
+      overflow-y: auto;
+      max-height: 400px;
+      padding-right: 10px;
+    }
+
+    .message {
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 16px;
+      animation: fadeIn 0.3s ease-in;
+      max-width: 90%;
+      word-wrap: break-word;
+    }
+
+    .user {
+      background: #d1f1ff;
+      align-self: flex-end;
+      text-align: right;
+    }
+
+    .bot {
+      background: #e9ffe1;
+      align-self: flex-start;
+    }
+
+    .input-area {
+      display: flex;
+      margin-top: 15px;
+    }
+
+    input {
+      flex-grow: 1;
+      padding: 10px;
+      border-radius: 20px 0 0 20px;
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    button {
+      padding: 0 16px;
+      border: none;
+      background-color: #4caf50;
+      color: white;
+      border-radius: 0 20px 20px 0;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <h1>🤖 Стелла</h1>
+    <div id="chat-window" class="chat-window"></div>
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Задай вопрос..." />
+      <button onclick="handleQuestion()">➤</button>
+    </div>
+  </div>
+
+  <script>
+    let qaPairs = [];
+
+    // Загружаем knowledge.txt при старте
+    fetch('knowledge.txt')
+      .then(res => res.text())
+      .then(text => {
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i += 2) {
+          const questionLine = lines[i]?.replace("Вопрос: ", "").trim();
+          const answerLine = lines[i + 1]?.replace("Ответ: ", "").trim();
+          if (questionLine && answerLine) {
+            qaPairs.push({ question: questionLine, answer: answerLine });
+          }
+        }
+      });
+
+    function handleQuestion() {
+      const input = document.getElementById('user-input');
+      const question = input.value.trim();
+      if (!question) return;
+
+      addMessage(question, 'user');
+      input.value = '';
+
+      const answer = findBestAnswer(question);
+      setTimeout(() => addMessage(answer, 'bot'), 500);
+    }
+
+    function addMessage(text, type) {
+      const chat = document.getElementById('chat-window');
+      const div = document.createElement('div');
+      div.className = 'message ' + type;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function findBestAnswer(userQuestion) {
+      userQuestion = userQuestion.toLowerCase();
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const pair of qaPairs) {
+        const score = similarity(userQuestion, pair.question.toLowerCase());
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = pair.answer;
+        }
+      }
+
+      return bestScore > 0.3 ? bestMatch : 'Извините, я не знаю ответа на этот вопрос.';
+    }
+
+    // Примитивное сравнение: количество общих слов
+    function similarity(q1, q2) {
+      const words1 = q1.split(/\s+/);
+      const words2 = q2.split(/\s+/);
+      const set1 = new Set(words1);
+      const set2 = new Set(words2);
+      const intersection = [...set1].filter(word => set2.has(word));
+      return intersection.length / Math.max(set1.size, 1);
+    }
+  </script>
+</body>
+</html>
 
